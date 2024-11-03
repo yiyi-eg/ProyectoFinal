@@ -14,7 +14,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Videos extends JFrame {
+public final class Videos extends JFrame {
     private JTextField rutaTexto;
     private JTable tablaVideos;
     private final ArrayList<Video> listaVideos = new ArrayList<>();

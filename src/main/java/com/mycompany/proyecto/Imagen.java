@@ -5,7 +5,7 @@ import javafx.embed.swing.JFXPanel;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-
+import javafx.embed.swing.SwingFXUtils;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -25,58 +25,65 @@ public final class Imagen extends JFrame {
 
     public Imagen() {
         setTitle("IMÁGENES");
-        setSize(1200, 720);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout());
+    setSize(1200, 720);
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    setLayout(new BorderLayout());
 
-        JPanel topPanel = new JPanel();
-        rutaTexto = new JTextField(40);
-        JButton btnSeleccionarRuta = new JButton("Seleccionar Ruta");
-        btnSeleccionarRuta.addActionListener(e -> seleccionarRuta());
-        JButton btnBuscar = new JButton("Buscar");
-        btnBuscar.addActionListener(e -> cargarImagenes());
+    JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+    rutaTexto = new JTextField(40);
+    JButton btnSeleccionarRuta = new JButton("Seleccionar Ruta");
+    btnSeleccionarRuta.addActionListener(e -> seleccionarRuta());
+    JButton btnBuscar = new JButton("Buscar");
+    btnBuscar.addActionListener(e -> cargarImagenes());
 
-        // Crear botón de regresar
-        JButton btnRegresar = crearBotonIcono("/iconos/regreso.png", 35);
-        btnRegresar.addActionListener(e -> dispose()); // Cierra la ventana actual
+    // Crear botón de regresar
+    JButton btnRegresar = crearBotonIcono("/iconos/regreso.png", 35, "Regresar");
+    btnRegresar.addActionListener(e -> dispose()); // Cierra la ventana actual
 
-        topPanel.add(rutaTexto);
-        topPanel.add(btnSeleccionarRuta);
-        topPanel.add(btnBuscar);
-        topPanel.add(btnRegresar); // Agregar botón de regresar al panel superior
-        add(topPanel, BorderLayout.NORTH);
+    // Agregar botones y campo de texto al panel superior
+    topPanel.add(rutaTexto);
+    topPanel.add(btnSeleccionarRuta);
+    topPanel.add(btnBuscar);
+    topPanel.add(btnRegresar);
+    add(topPanel, BorderLayout.NORTH);
 
-        // Configuración de la tabla
-        tablaImagenes = new JTable(new DefaultTableModel(new Object[]{"Nombre", "Extensión"}, 0));
-        JScrollPane scrollPane = new JScrollPane(tablaImagenes);
-        add(scrollPane, BorderLayout.CENTER);
+    // Configuración de la tabla
+    tablaImagenes = new JTable(new DefaultTableModel(new Object[]{"Nombre", "Extensión"}, 0));
+    JScrollPane scrollPane = new JScrollPane(tablaImagenes);
+    add(scrollPane, BorderLayout.CENTER);
 
-        // Crear panel de visualización de imágenes con JFXPanel
-        JFXPanel imagePanel = new JFXPanel();
-        add(imagePanel, BorderLayout.SOUTH);
-        imagePanel.setPreferredSize(new Dimension(800, 450));
+    // Crear panel de visualización de imágenes con JFXPanel
+    JFXPanel imagePanel = new JFXPanel();
+    imagePanel.setPreferredSize(new Dimension(800, 450));
+    add(imagePanel, BorderLayout.SOUTH);
 
-        tablaImagenes.getSelectionModel().addListSelectionListener(event -> {
-            int selectedRow = tablaImagenes.getSelectedRow();
-            if (selectedRow != -1) {
-                ImagenData imagen = listaImagenes.get(selectedRow);
-                mostrarImagen(imagen.getRuta(), imagePanel);
-            }
-        });
-    }
-
-    public JButton crearBotonIcono(String rutaIcono, int tamano) {
-        JButton boton = new JButton();
-        BufferedImage imagenEscalada = redimensionarImagen(rutaIcono, tamano, tamano);
-        if (imagenEscalada != null) {
-            boton.setIcon(new ImageIcon(imagenEscalada));
+    tablaImagenes.getSelectionModel().addListSelectionListener(event -> {
+        int selectedRow = tablaImagenes.getSelectedRow();
+        if (selectedRow != -1) {
+            ImagenData imagen = listaImagenes.get(selectedRow);
+            mostrarImagen(imagen.getRuta(), imagePanel);
         }
-        boton.setOpaque(false);
-        boton.setContentAreaFilled(false);
-        boton.setBorderPainted(false);
-        boton.setFocusPainted(false);
-        return boton;
+    });
+}
+
+// Método modificado para crear un botón con un ícono (si está disponible) o texto
+public JButton crearBotonIcono(String rutaIcono, int tamano, String textoAlternativo) {
+    JButton boton = new JButton(textoAlternativo); // Texto alternativo por defecto
+    try {
+        ImageIcon im = new ImageIcon(getClass().getResource(rutaIcono));
+        if (im.getIconWidth() > 0) { // Verificar si el ícono se ha cargado correctamente
+            boton.setIcon(new ImageIcon(im.getImage().getScaledInstance(tamano, tamano, java.awt.Image.SCALE_SMOOTH)));
+            boton.setText(""); // Quitar el texto si el ícono se carga
+        }
+    } catch (Exception e) {
+        System.out.println("Icono no encontrado: " + rutaIcono);
     }
+    boton.setOpaque(false);
+    boton.setContentAreaFilled(false);
+    boton.setBorderPainted(false);
+    boton.setFocusPainted(false);
+    return boton;
+}
 
     private BufferedImage redimensionarImagen(String ruta, int ancho, int alto) {
         try {
@@ -87,7 +94,6 @@ public final class Imagen extends JFrame {
             g.dispose();
             return imagenEscalada;
         } catch (IOException e) {
-            e.printStackTrace();
             return null;
         }
     }
@@ -149,16 +155,21 @@ public final class Imagen extends JFrame {
         JOptionPane.showMessageDialog(this, message, title, JOptionPane.ERROR_MESSAGE);
     }
 
-    private void mostrarImagen(String ruta, JFXPanel imagePanel) {
-        Platform.runLater(() -> {
-            Image image = new Image(new File(ruta).toURI().toString());
+   private void mostrarImagen(String ruta, JFXPanel imagePanel) {
+    Platform.runLater(() -> {
+        BufferedImage imagenRedimensionada = redimensionarImagen(ruta, 800, 450); // Redimensionar a 800x450
+
+        if (imagenRedimensionada != null) {
+            Image image = SwingFXUtils.toFXImage(imagenRedimensionada, null); // Convertir a imagen de JavaFX
             imageView = new ImageView(image);
-            imageView.setFitWidth(800);
-            imageView.setFitHeight(450);
             imageView.setPreserveRatio(true);
 
             Scene scene = new Scene(new javafx.scene.Group(imageView));
             imagePanel.setScene(scene);
-        });
-    }
+        } else {
+            System.out.println("No se pudo cargar la imagen.");
+        }
+    });
+}
+
 }
