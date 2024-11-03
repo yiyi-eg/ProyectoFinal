@@ -69,6 +69,12 @@ public class Musica extends JFrame {
         btnDeDuplicados();
         efectoHover(btnRegresar);
         efectoHover(btnSeleccionarRuta);
+        efectoHover(btnAnterior);
+        efectoHover(btnReproducir);
+        efectoHover(btnPausar);
+        efectoHover(btnSiguiente);
+        
+        
     }
     //<------ PANEL PRINCIPAL PARA PODER PINTAR TODO LO DEL SISTEMA ------>
     private void panel() {
@@ -76,7 +82,7 @@ public class Musica extends JFrame {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                ImageIcon imagen = new ImageIcon(getClass().getResource("/FONDOS/bac.jpg"));
+                ImageIcon imagen = new ImageIcon(getClass().getResource("/FONDOS/back2.jpg"));
                 g.drawImage(imagen.getImage(), 0, 0, getWidth(), getHeight(), this);
             }
         };
@@ -123,7 +129,7 @@ public class Musica extends JFrame {
          @Override
          public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
              Component cell = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-             cell.setForeground(Color.GREEN); // Cambia el color del texto aquí
+             cell.setForeground(Color.BLACK); // Cambia el color del texto aquí
              return cell;
          }
      });
@@ -165,6 +171,7 @@ public class Musica extends JFrame {
 
            reproductorMusica = ReproductorMusica.fromCanciones(listaCanciones);
        }).start();
+       actualizarEspacioTotal();
    }
     public ArrayList<Cancion> buscarCancionesEnDirectorio(File directorio) {
         ArrayList<Cancion> canciones = new ArrayList<>();
@@ -180,6 +187,7 @@ public class Musica extends JFrame {
             }
         }
         return canciones;
+        
     }
     //<- FUNCIONES PARA OBTENER LOS METADATOS DE LAS CANCUINES Y MOSTRAR EL ESPACIO ->
     private Cancion obtenerInformacionCancion(File archivo) {
@@ -208,11 +216,8 @@ public class Musica extends JFrame {
         }
 
         return new Cancion(nombre, extension, duracion, genero, artista, album, anio, ruta, tamanio);
+        
     }
-    private void actualizarEspacioTotal() {
-    long espacioTotal = listaCanciones.stream().mapToLong(cancion -> new File(cancion.getRuta()).length()).sum();
-    lblEspacioTotal.setText("Espacio total ocupado: " + espacioTotal / (1024 * 1024) + " MB");
-}
     //<- FUNCIONES PARA MOSTRAR DUPLICADOS Y ELIMINAR, TAMBIEN PODER SELECCIONAR EH ELIMINAR ->
     private void mostrarDuplicados() {
     Set<String> archivosUnicos = new HashSet<>();
@@ -247,7 +252,6 @@ public class Musica extends JFrame {
         Cancion cancion = iterador.next();
         String key = cancion.getNombre() + cancion.getTamanio() + cancion.getDuracion();
 
-        // Si ya existe la clave, es duplicado y lo eliminamos
         if (!cancionesUnicas.add(key)) {
             iterador.remove();
             hayDuplicados = true;
@@ -256,43 +260,48 @@ public class Musica extends JFrame {
 
     if (hayDuplicados) {
         JOptionPane.showMessageDialog(this, "Canciones duplicadas eliminadas.");
-        actualizarTabla();
     } else {
         JOptionPane.showMessageDialog(this, "No se encontraron canciones duplicadas.");
     }
+    actualizarTabla();
     actualizarEspacioTotal();
-    
 }
     public void eliminarSeleccionados() {
-        int[] filasSeleccionadas = tablaCanciones.getSelectedRows();
+    int[] filasSeleccionadas = tablaCanciones.getSelectedRows();
 
-        if (filasSeleccionadas.length == 0) {
-            JOptionPane.showMessageDialog(this, "No hay canciones seleccionadas para eliminar.");
-            return;
-        }
+    if (filasSeleccionadas.length == 0) {
+        JOptionPane.showMessageDialog(this, "No hay canciones seleccionadas para eliminar.");
+        return;
+    }
 
-        // Recorremos las filas seleccionadas en orden descendente para evitar errores de índice
-        for (int i = filasSeleccionadas.length - 1; i >= 0; i--) {
-            int fila = filasSeleccionadas[i];
-            String rutaCancion = (String) modeloTabla.getValueAt(fila, 7); // Columna de la ruta
+    // Recorremos las filas seleccionadas en orden descendente para evitar errores de índice
+    for (int i = filasSeleccionadas.length - 1; i >= 0; i--) {
+        int fila = filasSeleccionadas[i];
+        String rutaCancion = (String) modeloTabla.getValueAt(fila, 7); // Columna de la ruta
+
+        // Intentamos eliminar el archivo físico
+        File archivo = new File(rutaCancion);
+        if (archivo.delete()) {
+            // Si el archivo fue eliminado del sistema de archivos, lo eliminamos de la lista y de la tabla
             listaCanciones.removeIf(cancion -> cancion.getRuta().equals(rutaCancion));
             modeloTabla.removeRow(fila);
+        } else {
+            // Si hubo un problema al eliminar el archivo, mostramos un mensaje de error
+            JOptionPane.showMessageDialog(this, "No se pudo eliminar el archivo: " + rutaCancion);
         }
-
-        JOptionPane.showMessageDialog(this, "Canciones seleccionadas eliminadas.");
-        actualizarEspacioTotal();
-        
     }
+
+    JOptionPane.showMessageDialog(this, "Canciones seleccionadas eliminadas.");
+    actualizarEspacioTotal();
+}
     // Actualiza la tabla con las canciones restantes
     private void actualizarTabla() {
-        modeloTabla.setRowCount(0); // Limpia la tabla
-        for (Cancion cancion : listaCanciones) {
-            modeloTabla.addRow(new Object[]{
-                cancion.getNombre(), cancion.getExtencion(), cancion.getArtista(), cancion.getAlbum(),
-                cancion.getGenero(), cancion.getDuracion(), cancion.getAnio(), cancion.getRuta(), cancion.getTamanio()
-            });
-        }
-    }
+    modeloTabla.setRowCount(0); // Limpia la tabla
+    listaCanciones.forEach(cancion -> modeloTabla.addRow(new Object[]{
+        cancion.getNombre(), cancion.getExtencion(), cancion.getArtista(), cancion.getAlbum(),
+        cancion.getGenero(), cancion.getDuracion(), cancion.getAnio(), cancion.getRuta(), cancion.getTamanio()
+    }));
+}
     //<---------------------- BOTONES -------------------------->
     public JButton crearBotonIcono(String rutaIcono, int tamano) {
         boton = new JButton();
@@ -365,7 +374,7 @@ public class Musica extends JFrame {
             }
         });
         
-        lblEspacioTotal = new JLabel("Espacio total ocupado: 0 KB");
+        lblEspacioTotal = new JLabel("Espacio total ocupado: 0 MB");
         lblEspacioTotal.setForeground(Color.red);
         actualizarEspacioTotal();
 
@@ -375,6 +384,10 @@ public class Musica extends JFrame {
         panelControles2.add(btnEliminarSeleccionados);
         panelControles2.add(lblEspacioTotal);
     }
+    public void actualizarEspacioTotal() {
+    long espacioTotal = listaCanciones.stream().mapToLong(cancion -> new File(cancion.getRuta()).length()).sum();
+    lblEspacioTotal.setText("Espacio total ocupado: " + espacioTotal / (1024 * 1024) + " MB");
+}
    //<------ FUNCION PARA AGREGAR LOS BOTONES PARA CONTROLAR LA MUSICA ------->
     private void agregarControlesMusica() {
         panelControles = new JPanel((new FlowLayout(FlowLayout.CENTER)));

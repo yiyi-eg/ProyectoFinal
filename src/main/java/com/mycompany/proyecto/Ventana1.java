@@ -172,7 +172,7 @@ public class Ventana1 extends JFrame {
     
         @Override
         public void mouseClicked(java.awt.event.MouseEvent evt){
-        Video v = new Video();
+        Videos v = new Videos();
         v.setVisible(true);
         }
         
